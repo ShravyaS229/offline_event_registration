@@ -16,7 +16,7 @@ const adminAuth = (req, res, next) => {
 // GET ADMIN DATA
 router.get("/admin-data", adminAuth, async (req, res) => {
   try {
-    const registrations = await Registration.find();
+    const registrations = await Registration.find().sort({ _id: -1 });
 
     const usedSlots = registrations.length;
     const remainingSlots = MAX_SLOTS - usedSlots;

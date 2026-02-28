@@ -26,6 +26,16 @@ async function connectDB() {
   }
 }
 
+// CORS configuration — must be first middleware
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "*",
+    credentials: true,
+  })
+);
+
+app.use(express.json());
+
 // Middleware: ensure DB is connected before handling requests
 app.use(async (req, res, next) => {
   try {
@@ -35,16 +45,6 @@ app.use(async (req, res, next) => {
     res.status(500).json({ message: "Database connection failed" });
   }
 });
-
-// CORS configuration
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL || "*",
-    credentials: true,
-  })
-);
-
-app.use(express.json());
 
 // Routes
 app.use("/api", authRoutes);
