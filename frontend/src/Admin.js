@@ -1,12 +1,16 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
+import { toast } from "react-toastify";
 import * as XLSX from "xlsx";
 
 function Admin() {
   const [data, setData] = useState(null);
   const [search, setSearch] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchData = useCallback(async (pass) => {
+    setIsLoading(true);
     try {
       const res = await fetch(`${process.env.REACT_APP_API_URL || ""}/api/admin-data`, {
         headers: { "x-admin-secret": pass }
@@ -18,7 +22,7 @@ function Admin() {
         throw new Error("Server returned HTML instead of JSON. Is the API URL correct?");
       }
       if (res.status === 401) {
-        alert("Incorrect Password");
+        toast.error("Incorrect Password");
         setPassword("");
         return;
       }
@@ -29,44 +33,50 @@ function Admin() {
 
       const result = await res.json();
       setData(result);
+      setIsLoggedIn(true);
+      toast.success("Dashboard loaded successfully");
     } catch (err) {
       console.error("Error fetching admin data", err);
-      // Error handled via console
+      toast.error("Failed to fetch admin data. Check your connection.");
     } finally {
-      // Data fetching complete
+      setIsLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    const promptForPassword = () => {
-      const adminPass = window.prompt("Enter Admin Password:");
-      if (adminPass) {
-        setPassword(adminPass);
-        fetchData(adminPass);
-      } else {
-        // No action needed if password not entered, as data will remain null
-      }
-    };
-
-    promptForPassword();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run once on mount
+  const handleLogin = (e) => {
+    e.preventDefault();
+    if (!password.trim()) {
+      toast.warning("Please enter a password");
+      return;
+    }
+    fetchData(password);
+  };
 
   const deleteRegistration = async (id) => {
     const confirmDelete = window.confirm("Are you sure?");
     if (!confirmDelete) return;
 
-    await fetch(`${process.env.REACT_APP_API_URL || ""}/api/delete/${id}`, {
-      method: "DELETE",
-      headers: { "x-admin-secret": password }
-    });
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || ""}/api/delete/${id}`, {
+        method: "DELETE",
+        headers: { "x-admin-secret": password }
+      });
 
-    fetchData();
+      if (res.ok) {
+        toast.success("Registration deleted successfully");
+      } else {
+        toast.error("Failed to delete registration");
+      }
+    } catch (err) {
+      toast.error("Error deleting registration. Check your connection.");
+    }
+
+    fetchData(password);
   };
 
   const exportToExcel = () => {
     if (!data || data.registrations.length === 0) {
-      alert("No data to export");
+      toast.warning("No data to export");
       return;
     }
 
@@ -91,9 +101,37 @@ function Admin() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  if (!data) return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <h2 style={{ color: 'var(--text-muted)' }}>Loading Dashboard...</h2>
+  // Show login form if not logged in
+  if (!isLoggedIn) return (
+    <div className="registration-wrapper">
+      <div className="registration-card glass-card" style={{ maxWidth: "420px" }}>
+        <div className="registration-header" style={{ textAlign: "center" }}>
+          <div style={{ fontSize: "3rem", marginBottom: "12px" }}>🔐</div>
+          <h2>Admin Access</h2>
+          <p>Enter your admin password to continue</p>
+        </div>
+        <form onSubmit={handleLogin}>
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input
+              className="input-field"
+              type="password"
+              placeholder="Enter admin password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <button
+            type="submit"
+            className="btn-primary"
+            style={{ width: "100%", marginTop: "10px", opacity: isLoading ? 0.7 : 1 }}
+            disabled={isLoading}
+          >
+            {isLoading ? "Authenticating..." : "Login"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 

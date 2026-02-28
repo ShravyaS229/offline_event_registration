@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { ToastContainer, toast } from "react-toastify";
 import Admin from "./Admin";
 import "./App.css";
 
@@ -49,7 +50,7 @@ function App() {
     );
 
     updatePendingCount();
-    alert("Saved offline. Will sync automatically when internet is back.");
+    toast.info("Saved offline. Will sync automatically when internet is back.");
   };
 
   const removeFromLocal = useCallback((timestamp) => {
@@ -83,10 +84,10 @@ function App() {
 
       if (response.ok) {
         removeFromLocal(data.timestamp);
-        alert("Registration Successful");
+        toast.success("Registration Successful");
       } else {
         removeFromLocal(data.timestamp);
-        alert(result.message);
+        toast.error(result.message);
       }
 
     } catch (error) {
@@ -154,6 +155,7 @@ function App() {
 
   return (
     <Router>
+      <ToastContainer position="top-right" autoClose={3000} />
       <Routes>
 
         {/* Registration Page */}
